@@ -12,7 +12,10 @@ RUN apt-get update && \
 
 # Copia y establece las dependencias del proyecto
 RUN pip install --upgrade pip
-COPY /requirements.txt /app/
+
+# Copia y establece las dependencias del proyecto
+COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Etapa 2: Configuración de la aplicación
@@ -22,6 +25,7 @@ COPY . .
 
 # Etapa 3: Servidor de producción
 FROM python:3.10-slim AS production
+
 WORKDIR /app
 
 # Copia los archivos del build anterior

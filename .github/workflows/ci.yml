@@ -3,7 +3,7 @@ name: CI Workflow
 on:
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   build-and-test:
@@ -38,6 +38,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
           
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v2
