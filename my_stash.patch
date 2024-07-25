@@ -1,0 +1,92 @@
+diff --git a/db.sqlite3 b/db.sqlite3
+index 1fd56d6..0a7bd08 100644
+Binary files a/db.sqlite3 and b/db.sqlite3 differ
+diff --git a/donatello/apps/finanzas/models.py b/donatello/apps/finanzas/models.py
+index 7e71a06..4d62071 100644
+--- a/donatello/apps/finanzas/models.py
++++ b/donatello/apps/finanzas/models.py
+@@ -11,7 +11,7 @@ class Finanza(models.Model):
+     tipo = models.CharField(max_length=100, choices=TIPO_CHOICES)
+     monto = models.DecimalField(max_digits=10, decimal_places=2)
+     fecha = models.DateField()
+-    id_usuario = models.ForeignKey(User, on_delete=models.CASCADE)
++    id_usuario = models.IntegerField()
+ 
+     def __str__(self):
+         return f"Finanza #{self.id_finanza}: {self.tipo} - ${self.monto}"
+\ No newline at end of file
+diff --git a/donatello/apps/finanzas/urls.py b/donatello/apps/finanzas/urls.py
+index f4aeea3..0db0fff 100644
+--- a/donatello/apps/finanzas/urls.py
++++ b/donatello/apps/finanzas/urls.py
+@@ -2,8 +2,11 @@ from django.urls import path
+ from . import views
+ 
+ urlpatterns = [
+-    path('finances/transactions/', views.FinanzaListCreate.as_view(), name='finanza-list-create'),
++    path('finances/transactions/<int:id_usuario>/', views.FinanzaListCreateByIdUsuario.as_view(), name='finanza-list-create'),
+     path('finances/transactions/<int:pk>/', views.FinanzaDetail.as_view(), name='finanza-detail'),
++    path('finances/transactions/', views.FinanzaCreate.as_view(), name='finanza-create'),
++    path('finances/transactions/<int:id_finanza>/', views.FinanzaDelete.as_view, name='finanza-delete'),
++    path('finances/transactions/<int:id_finanza>/', views.FinanzaUpdate.as_view, name='finanza-update'),
+     path('finances/reports/', views.FinanceReport.as_view(), name='finance-report'),
+-    path('finances/ingreso-total/', views.IngresoTotal.as_view(), name='ingreso-total'),
++    path('finances/ingreso-total/<int:id_usuario>/', views.IngresoTotal.as_view(), name='ingreso-total'),
+ ]
+\ No newline at end of file
+diff --git a/donatello/apps/finanzas/views.py b/donatello/apps/finanzas/views.py
+index d9f95e0..5c68511 100644
+--- a/donatello/apps/finanzas/views.py
++++ b/donatello/apps/finanzas/views.py
+@@ -14,16 +14,32 @@ from datetime import date
+ from django.utils import timezone
+ 
+ 
+-class FinanzaListCreate(generics.ListCreateAPIView):
+-    queryset = Finanza.objects.all()
++class FinanzaListCreateByIdUsuario(generics.ListCreateAPIView):
+     serializer_class = FinanzaSerializer
+ 
++    def get_queryset(self):
++        id_usuario = self.kwargs['id_usuario']
++        return Finanza.objects.filter(id_usuario=id_usuario)
++
+ class FinanzaDetail(generics.RetrieveUpdateDestroyAPIView):
+     queryset = Finanza.objects.all()
+     serializer_class = FinanzaSerializer
+ 
++class FinanzaCreate(generics.CreateAPIView):
++    queryset = Finanza.objects.all()
++    serializer_class = FinanzaSerializer
++
++class FinanzaDelete(generics.DestroyAPIView):
++    queryset = Finanza.objects.all()
++    serializer_class = FinanzaSerializer
++    
++
++class FinanzaUpdate(generics.UpdateAPIView):
++    queryset = Finanza.objects.all()
++    serializer_class = FinanzaSerializer
++
+ class IngresoTotal(APIView):
+-    def get(self, request):
++    def get(self, request, id_usuario):
+         try:
+             today = timezone.now().date()
+             # Calcular fechas
+@@ -33,13 +49,13 @@ class IngresoTotal(APIView):
+             # Calcular total de ingresos en la semana
+             total_ingresos_semana = Finanza.objects.filter(
+                 fecha__range=[inicio_semana, today], 
+-                tipo='income'
++                tipo='income', id_usuario=id_usuario
+             ).aggregate(total=Sum('monto'))['total'] or 0
+             
+             # Calcular total de ingresos en el mes
+             total_ingresos_mes = Finanza.objects.filter(
+                 fecha__range=[inicio_mes, today], 
+-                tipo='income'
++                tipo='income', id_usuario=id_usuario
+             ).aggregate(total=Sum('monto'))['total'] or 0
+ 
+             # Preparar respuesta
